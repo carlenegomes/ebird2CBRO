@@ -1,3 +1,8 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
 name = "ebird2CBRO"
 version = "0.1.0"
 description = "Convert eBird species lists into presence columns in the Brazilian CBRO bird checklist."
