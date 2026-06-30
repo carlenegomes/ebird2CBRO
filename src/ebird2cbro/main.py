@@ -109,8 +109,10 @@ def ebird2cbro(
         if len(unmatched) == 0:
             print("Todas as espécies foram associadas com sucesso à lista CBRO :D")
         else:
-            print(f"{len(unmatched)} espécies não puderam ser associadas à lista CBRO...")
-            print("Considere verificar nomes taxonômicos ou atualizar o taxonomic_crosswalk.csv")
+            if len(unmatched) == 1:
+                print("1 espécie não pôde ser associada à lista CBRO...")
+            else:
+                print(f"{len(unmatched)} espécies não puderam ser associadas à lista CBRO...")
             for sp in unmatched:
                 print(f" - {sp}")
 
