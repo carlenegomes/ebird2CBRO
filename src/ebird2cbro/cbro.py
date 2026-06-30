@@ -12,14 +12,52 @@ def load_default_crosswalk():
     path = get_package_data_path("taxonomic_crosswalk.csv")
     return pd.read_csv(path)
 
+def standardize_species_file(species_df):
+    """
+    Standardize species files to use a 'scientific_name' column.
+
+    Supports:
+    - eBird exported spreadsheets with 'Scientific name'
+    - files already containing 'scientific_name'
+    """
+
+    species_df = species_df.copy()
+
+    if "scientific_name" in species_df.columns:
+        species_df = species_df[["scientific_name"]]
+
+    elif "Scientific name" in species_df.columns:
+        species_df = species_df.rename(columns={"Scientific name": "scientific_name"})
+
+        if "Sum" in species_df.columns:
+            species_df = species_df[species_df["Sum"].notna()]
+
+        species_df = species_df[["scientific_name"]]
+
+    else:
+        raise ValueError(
+            "Não encontrei uma coluna de nome científico. "
+            "Use uma coluna chamada 'scientific_name' ou 'Scientific name'."
+        )
+
+    species_df = species_df.dropna(subset=["scientific_name"])
+    species_df["scientific_name"] = species_df["scientific_name"].astype(str).str.strip()
+    species_df = species_df.drop_duplicates()
+
+    return species_df
+
+
 def load_species_file(species_file):
     if species_file.endswith(".csv"):
-        return pd.read_csv(species_file)
+        species_df = pd.read_csv(species_file)
 
-    if species_file.endswith((".xlsx", ".xls")):
-        return pd.read_excel(species_file)
+    elif species_file.endswith((".xlsx", ".xls")):
+        species_df = pd.read_excel(species_file)
 
-    raise ValueError("O arquivo deve ser .csv, .xlsx ou .xls")
+    else:
+        raise ValueError("O arquivo deve ser .csv, .xlsx ou .xls")
+
+    return standardize_species_file(species_df)
 
 def add_presence_column(
     cbro_df,
