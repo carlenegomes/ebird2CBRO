@@ -67,3 +67,27 @@ def apply_taxonomic_crosswalk(
     )
 
     return species_df
+
+def find_unmatched_species(
+    cbro_df,
+    species_df,
+    cbro_species_col="Nome do táxon (sem autoria)",
+    species_col="scientific_name"
+):
+    cbro_species = set(
+        cbro_df[cbro_species_col]
+        .dropna()
+        .astype(str)
+        .str.strip()
+    )
+
+    input_species = set(
+        species_df[species_col]
+        .dropna()
+        .astype(str)
+        .str.strip()
+    )
+
+    unmatched = sorted(input_species - cbro_species)
+
+    return unmatched

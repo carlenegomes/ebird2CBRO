@@ -9,7 +9,8 @@ from .cbro import (
     load_cbro,
     load_default_cbro,
     load_species_file,
-    add_presence_column
+    add_presence_column,
+    find_unmatched_species
 )
 
 def ebird2cbro(
