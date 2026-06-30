@@ -181,13 +181,14 @@ def apply_taxonomic_crosswalk(
 
     crosswalk = pd.read_csv(crosswalk_path)
 
+    crosswalk[ebird_col] = crosswalk[ebird_col].astype(str).str.strip()
+    crosswalk[cbro_col] = crosswalk[cbro_col].astype(str).str.strip()
+
     name_map = dict(zip(crosswalk[ebird_col], crosswalk[cbro_col]))
 
     species_df = species_df.copy()
-    species_df[species_col] = (
-        species_df[species_col]
-        .replace(name_map)
-    )
+    species_df[species_col] = species_df[species_col].astype(str).str.strip()
+    species_df[species_col] = species_df[species_col].replace(name_map)
 
     return species_df
 

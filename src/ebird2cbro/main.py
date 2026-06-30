@@ -10,7 +10,8 @@ from .cbro import (
     load_default_cbro,
     load_ebird_export_file,
     add_presence_column,
-    add_multiple_presence_columns
+    add_multiple_presence_columns,
+    find_unmatched_species
 )
 
 def ebird2cbro(
@@ -22,16 +23,14 @@ def ebird2cbro(
     cbro_species_col="Nome do táxon (sem autoria)",
     species_col="scientific_name",
     crosswalk_path=None,
-    output_path=None
+    output_path=None,
+    show_unmatched=True
 ):
     """
     Add an eBird species list as a presence/absence column in the CBRO checklist.
 
     Parameters
     ----------
-    cbro_path : str
-        Path to the CBRO spreadsheet.
-
     source : str
         eBird checklist ID, hotspot ID (or path to a species file #coming soon).
 
@@ -40,6 +39,9 @@ def ebird2cbro(
 
     column_name : str
         Name of the presence/absence column to be added.
+
+    cbro_path : str
+        Path to the CBRO spreadsheet.
 
     api_key : str, optional
         eBird API key. Required for "checklist" and "hotspot".
@@ -55,6 +57,9 @@ def ebird2cbro(
 
     output_path : str, optional
         If provided, saves the resulting spreadsheet.
+
+    show_unmatched : bool, optional
+        If True, prints species that could not be matched to the CBRO list.
 
     Returns
     -------
@@ -92,6 +97,22 @@ def ebird2cbro(
         crosswalk_path=crosswalk_path,
         species_col=species_col
     )
+
+    unmatched = find_unmatched_species(
+        cbro_df=cbro_df,
+        species_df=species_df,
+        cbro_species_col=cbro_species_col,
+        species_col=species_col
+    )
+
+    if show_unmatched:
+        if len(unmatched) == 0:
+            print("Todas as espécies foram associadas com sucesso à lista CBRO :D")
+        else:
+            print(f"{len(unmatched)} espécies não puderam ser associadas à lista CBRO...")
+            print("Considere verificar nomes taxonômicos ou atualizar o taxonomic_crosswalk.csv")
+            for sp in unmatched:
+                print(f" - {sp}")
 
     if source_type == "file":
         result = add_multiple_presence_columns(
