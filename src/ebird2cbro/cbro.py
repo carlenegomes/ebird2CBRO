@@ -1,8 +1,16 @@
+from importlib.resources import files
 import pandas as pd
 
-def load_cbro(cbro_path):
-    return pd.read_excel(cbro_path)
+def get_package_data_path(filename):
+    return files("ebird2cbro").joinpath("data", filename)
 
+def load_default_cbro():
+    path = get_package_data_path("cbro.xlsx")
+    return pd.read_excel(path)
+
+def load_default_crosswalk():
+    path = get_package_data_path("taxonomic_crosswalk.csv")
+    return pd.read_csv(path)
 
 def load_species_file(species_file):
     if species_file.endswith(".csv"):
