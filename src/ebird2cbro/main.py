@@ -5,6 +5,7 @@ from .api import (
 )
 
 from .cbro import (
+    apply_taxonomic_crosswalk,
     load_cbro,
     load_species_file,
     add_presence_column
@@ -12,14 +13,15 @@ from .cbro import (
 
 
 def ebird2cbro(
-    cbro_path,
+    cbro_path=None,
     source,
     source_type,
     column_name,
     api_key=None,
-    output_path=None,
     cbro_species_col="Nome do táxon (sem autoria)",
-    species_col="scientific_name"
+    species_col="scientific_name",
+    crosswalk_path=None,
+    output_path=None
 ):
     """
     Add an eBird species list as a presence/absence column in the CBRO checklist.
@@ -30,16 +32,25 @@ def ebird2cbro(
         Path to the CBRO spreadsheet.
 
     source : str
-        eBird checklist ID, hotspot ID, or path to a species file.
+        eBird checklist ID, hotspot ID (or path to a species file #coming soon).
 
     source_type : str
-        One of: "checklist", "hotspot", or "file".
+        One of: "checklist", "hotspot" (or "file" #coming soon).
 
     column_name : str
         Name of the presence/absence column to be added.
 
     api_key : str, optional
         eBird API key. Required for "checklist" and "hotspot".
+
+    cbro_species_col : str, optional
+        Name of the column in the CBRO spreadsheet containing species names.
+
+    species_col : str, optional
+        Name of the column in the species list containing species names.
+
+    crosswalk_path : str, optional
+        Path to the taxonomic crosswalk file.
 
     output_path : str, optional
         If provided, saves the resulting spreadsheet.
@@ -71,6 +82,12 @@ def ebird2cbro(
 
     else:
         raise ValueError("source_type deve ser 'checklist', 'hotspot' ou 'file'.")
+    
+    species_df = apply_taxonomic_crosswalk(
+    species_df,
+    crosswalk_path=crosswalk_path,
+    species_col=species_col
+)
 
     result = add_presence_column(
         cbro_df=cbro_df,
