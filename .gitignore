@@ -3,3 +3,6 @@ __pycache__/
 .ipynb_checkpoints/
 *.xlsx
 *.csv
+
+!src/ebird2cbro/data/*.xlsx
+!src/ebird2cbro/data/*.csv
