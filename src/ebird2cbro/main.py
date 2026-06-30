@@ -8,15 +8,15 @@ from .cbro import (
     apply_taxonomic_crosswalk,
     load_cbro,
     load_default_cbro,
-    load_species_file,
+    load_ebird_export_file,
     add_presence_column,
-    find_unmatched_species
+    add_multiple_presence_columns
 )
 
 def ebird2cbro(
     source,
     source_type,
-    column_name,
+    column_name=None,
     cbro_path=None,
     api_key=None,
     cbro_species_col="Nome do táxon (sem autoria)",
@@ -62,7 +62,10 @@ def ebird2cbro(
         CBRO checklist with the new presence/absence column.
     """
 
-    cbro_df = load_cbro(cbro_path)
+    if cbro_path is None:
+        cbro_df = load_default_cbro()
+    else:
+        cbro_df = load_cbro(cbro_path)
 
     if source_type == "checklist":
         if api_key is None:
@@ -79,29 +82,35 @@ def ebird2cbro(
         species_df = species_codes_to_dataframe(species_codes, api_key)
 
     elif source_type == "file":
-        species_df = load_species_file(source)
+        species_df = load_ebird_export_file(source)
 
     else:
         raise ValueError("source_type deve ser 'checklist', 'hotspot' ou 'file'.")
-    
-    if cbro_path is None:
-        cbro_df = load_default_cbro()
-    else:
-        cbro_df = load_cbro(cbro_path)
-    
-    species_df = apply_taxonomic_crosswalk(
-    species_df,
-    crosswalk_path=crosswalk_path,
-    species_col=species_col
-)
 
-    result = add_presence_column(
-        cbro_df=cbro_df,
-        species_df=species_df,
-        column_name=column_name,
-        cbro_species_col=cbro_species_col,
+    species_df = apply_taxonomic_crosswalk(
+        species_df,
+        crosswalk_path=crosswalk_path,
         species_col=species_col
     )
+
+    if source_type == "file":
+        result = add_multiple_presence_columns(
+            cbro_df=cbro_df,
+            species_df=species_df,
+            cbro_species_col=cbro_species_col,
+            species_col=species_col
+        )
+    else:
+        if column_name is None:
+            raise ValueError("column_name é obrigatório para source_type='checklist' ou 'hotspot'.")
+
+        result = add_presence_column(
+            cbro_df=cbro_df,
+            species_df=species_df,
+            column_name=column_name,
+            cbro_species_col=cbro_species_col,
+            species_col=species_col
+        )
 
     if output_path is not None:
         result.to_excel(output_path, index=False)
