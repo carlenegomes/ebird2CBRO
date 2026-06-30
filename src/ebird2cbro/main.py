@@ -14,10 +14,10 @@ from .cbro import (
 )
 
 def ebird2cbro(
-    cbro_path=None,
     source,
     source_type,
     column_name,
+    cbro_path=None,
     api_key=None,
     cbro_species_col="Nome do táxon (sem autoria)",
     species_col="scientific_name",
