@@ -7,10 +7,10 @@ from .api import (
 from .cbro import (
     apply_taxonomic_crosswalk,
     load_cbro,
+    load_default_cbro,
     load_species_file,
     add_presence_column
 )
-
 
 def ebird2cbro(
     cbro_path=None,
@@ -82,6 +82,11 @@ def ebird2cbro(
 
     else:
         raise ValueError("source_type deve ser 'checklist', 'hotspot' ou 'file'.")
+    
+    if cbro_path is None:
+        cbro_df = load_default_cbro()
+    else:
+        cbro_df = load_cbro(cbro_path)
     
     species_df = apply_taxonomic_crosswalk(
     species_df,
