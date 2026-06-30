@@ -177,9 +177,9 @@ def apply_taxonomic_crosswalk(
     cbro_col="cbro_name"
 ):
     if crosswalk_path is None:
-        return species_df
-
-    crosswalk = pd.read_csv(crosswalk_path)
+        crosswalk = load_default_crosswalk()
+    else:
+        crosswalk = pd.read_csv(crosswalk_path)
 
     crosswalk[ebird_col] = crosswalk[ebird_col].astype(str).str.strip()
     crosswalk[cbro_col] = crosswalk[cbro_col].astype(str).str.strip()
