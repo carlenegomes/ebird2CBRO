@@ -37,3 +37,25 @@ def add_presence_column(
     )
 
     return cbro_df
+
+def apply_taxonomic_crosswalk(
+    species_df,
+    crosswalk_path=None,
+    species_col="scientific_name",
+    ebird_col="ebird_name",
+    cbro_col="cbro_name"
+):
+    if crosswalk_path is None:
+        return species_df
+
+    crosswalk = pd.read_csv(crosswalk_path)
+
+    name_map = dict(zip(crosswalk[ebird_col], crosswalk[cbro_col]))
+
+    species_df = species_df.copy()
+    species_df[species_col] = (
+        species_df[species_col]
+        .replace(name_map)
+    )
+
+    return species_df
