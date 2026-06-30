@@ -4,6 +4,9 @@ import pandas as pd
 def get_package_data_path(filename):
     return files("ebird2cbro").joinpath("data", filename)
 
+def load_cbro(cbro_path):
+    return pd.read_excel(cbro_path)
+
 def load_default_cbro():
     path = get_package_data_path("cbro.xlsx")
     return pd.read_excel(path)
