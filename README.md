@@ -1,6 +1,6 @@
 # ebird2CBRO
 
-`ebird2CBRO` é um pacote que converte listas do eBird em colunas de presença/ausência na lista de espécies do Comitê Brasileiro de Registros Ornitológicos (CBRO)
+Um tempo atrás precisava unir vários checklists do eBird em uma só lista de espécies e acabei criando essa função para facilitar o processo. Agora, o `ebird2CBRO` é um 'pacote' que converte checklists do eBird em colunas de presença/ausência na lista de espécies do Comitê Brasileiro de Registros Ornitológicos (CBRO)
 
 ## Ideia Principal
 
@@ -8,9 +8,9 @@ O pacote recebe uma lista de espécies do eBird vinda de:
 
 - um checklist pessoal;
 - um hotspot;
-- uma planilha exportada de uma lista.
+- uma planilha exportada de uma lista
 
-E então ele relaciona com a lista do CBRO e adiciona uma coluna marcando presença ou ausência
+E então ele relaciona com a lista do CBRO e adiciona uma coluna marcando presença ou ausência para cada uma das espécies
 
 ## Uso básico
 
