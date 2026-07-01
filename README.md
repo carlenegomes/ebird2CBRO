@@ -1,24 +1,23 @@
 # ebird2CBRO
 
-`ebird2CBRO` is a Python package to convert eBird species lists into presence/absence columns in the Brazilian CBRO bird checklist.
+`ebird2CBRO` é um pacote que converte listas do eBird em colunas de presença/ausência na lista de espécies do Comitê Brasileiro de Registros Ornitológicos (CBRO)
 
-## Main idea
+## Ideia Principal
 
-The package receives a species list from:
+O pacote recebe uma lista de espécies do eBird vinda de:
 
-- an eBird checklist;
-- an eBird hotspot;
-- a spreadsheet exported from eBird.
+- um checklist pessoal;
+- um hotspot;
+- uma planilha exportada de uma lista.
 
-Then it matches the species with the CBRO checklist and adds a presence column.
+E então ele relaciona com a lista do CBRO e adiciona uma coluna marcando presença ou ausência
 
-## Basic usage
+## Uso básico
 
 ```python
 from ebird2cbro import ebird2cbro
 
 df = ebird2cbro(
-    cbro_path="CBRO.xlsx",
     source="S123456789",
     source_type="checklist",
     column_name="my_checklist",
