@@ -1,6 +1,7 @@
 from importlib.resources import files
 import pandas as pd
 
+
 def get_package_data_path(filename):
     return files("ebird2cbro").joinpath("data", filename)
 
@@ -191,6 +192,223 @@ def apply_taxonomic_crosswalk(
     species_df[species_col] = species_df[species_col].replace(name_map)
 
     return species_df
+
+def match_species(
+    species_df,
+    species_col="scientific_name",
+    cbro_path=None,
+    crosswalk_path=None,
+    crosswalk_source_col="ebird_name",
+    crosswalk_cbro_col="cbro_name",
+    cbro_species_col="Nome do táxon (sem autoria)",
+    cbro_rank_col="Categoria",
+    species_rank_value="Espécie"
+):
+    """
+    Associa nomes científicos de uma tabela à taxonomia da CBRO.
+
+    A função:
+    1. preserva todas as colunas originais;
+    2. tenta correspondência direta com a CBRO;
+    3. quando necessário, aplica o crosswalk taxonômico;
+    4. adiciona o nome aceito pela CBRO;
+    5. informa o tipo de associação realizada.
+
+    Parameters
+    ----------
+    species_df : pandas.DataFrame
+        DataFrame contendo os nomes científicos.
+
+    species_col : str, default "scientific_name"
+        Coluna do DataFrame que contém os nomes científicos.
+
+    cbro_path : str ou Path, optional
+        Caminho para uma lista CBRO alternativa.
+        Quando None, usa a lista incluída no pacote.
+
+    crosswalk_path : str ou Path, optional
+        Caminho para um crosswalk alternativo.
+        Quando None, usa o crosswalk incluído no pacote.
+
+    crosswalk_source_col : str, default "ebird_name"
+        Coluna do crosswalk com o nome usado na fonte original.
+
+    crosswalk_cbro_col : str, default "cbro_name"
+        Coluna do crosswalk com o nome aceito pela CBRO.
+
+    cbro_species_col : str
+        Coluna da lista CBRO com o nome científico sem autoria.
+
+    cbro_rank_col : str
+        Coluna da CBRO com a categoria taxonômica.
+
+    species_rank_value : str
+        Valor usado pela CBRO para identificar espécies.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame original com as colunas adicionais:
+
+        - scientific_name_original
+        - scientific_name_cbro
+        - match_status
+        - matched
+    """
+
+    if not isinstance(species_df, pd.DataFrame):
+        raise TypeError(
+            "species_df precisa ser um pandas.DataFrame."
+        )
+
+    if species_col not in species_df.columns:
+        raise ValueError(
+            f"A coluna '{species_col}' não existe no DataFrame. "
+            f"Colunas disponíveis: {species_df.columns.tolist()}"
+        )
+
+    # Carrega a lista da CBRO
+    if cbro_path is None:
+        cbro_df = load_default_cbro()
+    else:
+        cbro_df = load_cbro(cbro_path)
+
+    # Mantém apenas registros no nível de espécie
+    cbro_species = cbro_df.loc[
+        cbro_df[cbro_rank_col] == species_rank_value
+    ].copy()
+
+    cbro_species[cbro_species_col] = (
+        cbro_species[cbro_species_col]
+        .astype(str)
+        .str.strip()
+    )
+
+    accepted_names = set(
+        cbro_species[cbro_species_col]
+        .dropna()
+        .unique()
+    )
+
+    result = species_df.copy()
+
+    # Preserva o nome original
+    result["scientific_name_original"] = (
+        result[species_col]
+        .astype("string")
+        .str.strip()
+    )
+
+    result["scientific_name_cbro"] = result[
+        "scientific_name_original"
+    ]
+
+    # Correspondência direta
+    exact_match = result[
+        "scientific_name_original"
+    ].isin(accepted_names)
+
+    result["match_status"] = "unmatched"
+
+    result.loc[
+        exact_match,
+        "match_status"
+    ] = "exact_cbro"
+
+    # Carrega o crosswalk
+    if crosswalk_path is None:
+        crosswalk = load_default_crosswalk()
+    else:
+        crosswalk = pd.read_csv(crosswalk_path)
+
+    required_crosswalk_columns = {
+        crosswalk_source_col,
+        crosswalk_cbro_col
+    }
+
+    missing_crosswalk_columns = (
+        required_crosswalk_columns - set(crosswalk.columns)
+    )
+
+    if missing_crosswalk_columns:
+        raise ValueError(
+            "Colunas ausentes no crosswalk: "
+            f"{sorted(missing_crosswalk_columns)}. "
+            f"Colunas disponíveis: {crosswalk.columns.tolist()}"
+        )
+
+    crosswalk = crosswalk.copy()
+
+    crosswalk[crosswalk_source_col] = (
+        crosswalk[crosswalk_source_col]
+        .astype(str)
+        .str.strip()
+    )
+
+    crosswalk[crosswalk_cbro_col] = (
+        crosswalk[crosswalk_cbro_col]
+        .astype(str)
+        .str.strip()
+    )
+
+    name_map = dict(
+        zip(
+            crosswalk[crosswalk_source_col],
+            crosswalk[crosswalk_cbro_col]
+        )
+    )
+
+    # Aplica crosswalk apenas aos nomes sem match direto
+    unmatched_mask = ~exact_match
+
+    mapped_names = (
+        result.loc[
+            unmatched_mask,
+            "scientific_name_original"
+        ]
+        .map(name_map)
+    )
+
+    valid_crosswalk_match = (
+        mapped_names.notna()
+        & mapped_names.isin(accepted_names)
+    )
+
+    valid_indices = mapped_names.index[
+        valid_crosswalk_match
+    ]
+
+    result.loc[
+        valid_indices,
+        "scientific_name_cbro"
+    ] = mapped_names.loc[valid_indices]
+
+    result.loc[
+        valid_indices,
+        "match_status"
+    ] = "crosswalk"
+
+    # Entradas vazias
+    missing_input = (
+        result["scientific_name_original"].isna()
+        | result["scientific_name_original"].eq("")
+    )
+
+    result.loc[
+        missing_input,
+        "scientific_name_cbro"
+    ] = pd.NA
+
+    result.loc[
+        missing_input,
+        "match_status"
+    ] = "missing_input"
+
+    result["matched"] = result[
+        "match_status"
+    ].isin(["exact_cbro", "crosswalk"])
+
+    return result
 
 def find_unmatched_species(
     cbro_df,
