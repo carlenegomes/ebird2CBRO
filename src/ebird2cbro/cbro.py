@@ -85,32 +85,144 @@ def standardize_column_name(name):
 def load_ebird_export_file(species_file):
     if species_file.endswith(".csv"):
         df = pd.read_csv(species_file)
+
     elif species_file.endswith((".xlsx", ".xls")):
         df = pd.read_excel(species_file)
+
     else:
-        raise ValueError("O arquivo deve ser .csv, .xlsx ou .xls")
+        raise ValueError(
+            "O arquivo deve ser .csv, .xlsx ou .xls"
+        )
 
-    if "Scientific name" not in df.columns:
-        raise ValueError("A planilha exportada do eBird precisa ter a coluna 'Scientific name'.")
+    # ---------------------------------------------------------
+    # Detect scientific-name column
+    # ---------------------------------------------------------
 
-    checklist_cols = detect_ebird_export_columns(df)
+    possible_species_cols = [
+        "scientific_name",
+        "Scientific name",
+        "SCIENTIFIC NAME"
+    ]
 
-    species_rows = df["Scientific name"].notna()
+    species_col = next(
+        (
+            col
+            for col in possible_species_cols
+            if col in df.columns
+        ),
+        None
+    )
+
+    if species_col is None:
+        raise ValueError(
+            "Não encontrei a coluna de nome científico. "
+            "Use 'scientific_name', 'Scientific name' "
+            "ou 'SCIENTIFIC NAME'."
+        )
+
+    # ---------------------------------------------------------
+    # Detect locality/checklist columns
+    # ---------------------------------------------------------
+
+    metadata_cols = {
+        "Category",
+        "Species",
+        "Sum",
+        "scientific_name",
+        "Scientific name",
+        "SCIENTIFIC NAME"
+    }
+
+    checklist_cols = [
+        col
+        for col in df.columns
+        if col not in metadata_cols
+    ]
+
+    species_rows = df[species_col].notna()
 
     output = pd.DataFrame()
-    output["scientific_name"] = df.loc[species_rows, "Scientific name"].astype(str).str.strip()
+
+    output["scientific_name"] = (
+        df.loc[species_rows, species_col]
+        .astype(str)
+        .str.strip()
+    )
+
+    # ---------------------------------------------------------
+    # Convert each column to presence / absence
+    # ---------------------------------------------------------
 
     for col in checklist_cols:
         new_col = standardize_column_name(col)
 
         output[new_col] = (
-            df.loc[species_rows, col]
-            .notna()
-            .astype(int)
+            presence_from_column(
+                df.loc[species_rows, col]
+            )
             .values
         )
 
     return output
+
+def presence_from_column(series):
+    """
+    Convert a checklist/locality column to presence/absence.
+
+    Rules
+    -----
+    - Numeric columns:
+        0 -> absence
+        >0 -> presence
+        missing -> absence
+
+    - Non-numeric columns:
+        filled cell -> presence
+        empty cell -> absence
+
+    This supports both:
+    - binary/user-created matrices (0/1);
+    - abundance matrices (0, 1, 2, ...);
+    - standard eBird exports, where any filled cell
+      represents a record.
+    """
+
+    series = series.copy()
+
+    non_missing = series.notna()
+
+    # Empty column
+    if non_missing.sum() == 0:
+        return pd.Series(
+            0,
+            index=series.index,
+            dtype=int
+        )
+
+    numeric = pd.to_numeric(
+        series,
+        errors="coerce"
+    )
+
+    # If every non-empty value can be interpreted as numeric
+    if numeric[non_missing].notna().all():
+
+        if (numeric[non_missing] < 0).any():
+            raise ValueError(
+                "Presence/absence or abundance columns "
+                "cannot contain negative values."
+            )
+
+        return (
+            numeric
+            .fillna(0)
+            .gt(0)
+            .astype(int)
+        )
+
+    # Otherwise, preserve standard eBird behavior:
+    # any filled cell = presence
+    return series.notna().astype(int)
 
 def add_presence_column(
     cbro_df,
