@@ -21,5 +21,9 @@ df = ebird2cbro(
     source="S123456789",
     source_type="checklist",
     column_name="my_checklist",
-    api_key="YOUR_EBIRD_API_KEY"
+    api_key="YOUR_EBIRD_API_KEY",
+    value_type="abundance"   # "presence" (padrão) ou "abundance"
 )
+```
+
+A captura da abundância funciona com `source_type="checklist"` e `source_type="file"`. Não funciona com `source_type="hotspot"`: a API do eBird só devolve a lista de espécies do hotspot, sem contagens. Registros com `X` (espécie presente, mas sem contagem) recebem o valor de `x_value` (padrão: `1`), por exemplo `x_value=1`. Se duas espécies do eBird correspondem ao mesmo nome do CBRO (por causa do crosswalk taxonômico), as contagens são somadas.
